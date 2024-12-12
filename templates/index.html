@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Idioms AI Assistant</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --background-color: #f0f9ff;
+            --card-color: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--primary-color);
+        }
+
+        .chat-container {
+            background-color: var(--card-color);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chat-box {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: #f8fafc;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            max-width: 80%;
+        }
+
+        .user-message {
+            background-color: var(--primary-color);
+            color: white;
+            margin-left: auto;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        button {
+            padding: 1rem 2rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .idiom-container {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .idiom-card {
+            background-color: var(--card-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease;
+        }
+
+        .idiom-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .idiom-title {
+            color: var(--primary-color);
+            margin: 0 0 0.5rem 0;
+            font-size: 1.25rem;
+        }
+
+        .idiom-definition {
+            color: #4b5563;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .error {
+            background-color: #fee2e2;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            display: none;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .loading-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-bar-progress {
+            width: 30%;
+            height: 100%;
+            background-color: var(--primary-color);
+            animation: loading 1.5s infinite ease-in-out;
+            border-radius: 2px;
+        }
+
+        @keyframes loading {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
+        }
+
+        .results-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .results-header {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Idioms AI Assistant</h1>
+        </div>
+
+        <div class="chat-container">
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+
+            <div class="chat-box">
+                {% if question %}
+                    <div class="message user-message">
+                        <strong>You:</strong> {{ question }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <form method="POST" action="/" class="input-container" id="questionForm">
+                <input type="text" name="question" placeholder="Ask about idioms..." required>
+                <button type="submit">Ask AI</button>
+            </form>
+
+            <!-- Loading Bar -->
+            <div class="loading" id="loadingBar">
+                <div class="loading-bar">
+                    <div class="loading-bar-progress"></div>
+                </div>
+                <p style="text-align: center; color: var(--primary-color);">Generating idioms...</p>
+            </div>
+
+            <!-- Results Section -->
+            {% if idioms and idioms.idioms %}
+                <div class="results-section">
+                    <h2 class="results-header">Here are some relevant idioms:</h2>
+                    <div class="idiom-container">
+                        {% for idiom in idioms.idioms %}
+                            <div class="idiom-card">
+                                <h3 class="idiom-title">#{{ idiom.number }}: {{ idiom.idiom }}</h3>
+                                <p class="idiom-definition">{{ idiom.definition }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('questionForm').addEventListener('submit', function(e) {
+            // Show loading bar
+            document.getElementById('loadingBar').classList.add('show');
+            
+            // Optional: Disable submit button to prevent double submission
+            this.querySelector('button').disabled = true;
+        });
+    </script>
+</body>
+</html> 
