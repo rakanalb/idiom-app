@@ -5,9 +5,6 @@ from openai import OpenAI
 import os
 from typing import List, Optional
 import json
-from dotenv import load_dotenv
-
-load_dotenv()
 
 class RAGSystem:
     def __init__(self, faiss_index_path: str, vectors_path: str, api_key: Optional[str] = None):
@@ -19,7 +16,7 @@ class RAGSystem:
             vectors_path: Path to the pickled vectors file
             api_key: OpenAI API key (optional, will use environment variable if not provided)
         """
-        self.api_key = api_key or os.getenv('OPENAI_API_KEY')
+        self.api_key = api_key or os.environ.get('OPENAI_API_KEY')
         if not self.api_key:
             raise ValueError("OpenAI API key not found.")
         
@@ -62,59 +59,83 @@ class RAGSystem:
     def search_similar_documents(self, query_embedding: np.ndarray, top_k: int = 5) -> List[str]:
         """Search for similar documents using the query embedding."""
         distances, indices = self.faiss_index.search(query_embedding, top_k)
-        return [self.documents[i] for i in indices[0]]
+        
+        # Debug prints
+        print("\n=== Debug: FAISS Search Results ===")
+        print(f"Indices found: {indices}")
+        print(f"Distances: {distances}")
+        
+        return [self.documents[i] for i in indices[0] if i < len(self.documents)]
 
     def generate_response(self, context: List[str], query: str, 
                          model: str = "gpt-4o-mini", max_completion_tokens: int = 2048) -> str:
-        """Generate a response using OpenAI's gpt-4o-mini model with optimized parameters."""
-        context_text = "\n".join([str(doc) for doc in context])
-        
-        # Calculate available tokens
-        context_window = 128000  # gpt-4o-mini's context window
-        buffer_tokens = 256  # Buffer to account for reasoning tokens
-        query_tokens = len(query.split())
-        available_tokens = context_window - query_tokens - buffer_tokens
-        
-        # Truncate context_text if it exceeds available tokens
-        context_tokens = context_text.split()
-        if len(context_tokens) > available_tokens:
-            context_text = " ".join(context_tokens[:available_tokens])
-        
-        prompt = f"""You are an idioms teacher. Please explain idioms in a clear way.
-        Return your response in this JSON format:
-        {{
-            "idioms": [
-                {{
-                    "number": 1,
-                    "idiom": "the idiom phrase",
-                    "definition": "clear explanation of the idiom"
-                }}
-            ]
-        }}
-        Include 3 idioms at a time if there is no relevant idioms don't include any idioms.
-        
-        Context: {context_text}
-        Query: {query}
-        """
-        
-        # Create chat completion
-        response = self.client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            response_format={ "type": "json_object" },
-            max_tokens=max_completion_tokens,
-            temperature=0.7,
-            timeout=self.timeout
-        )
-        
-        # Check if the response is valid JSON
+        """Generate a response using GPT-4o-mini model with optimized parameters."""
         try:
-            return response.choices[0].message.content
+            # Limit each document to 500 characters and take only top 5 documents
+            truncated_docs = [str(doc)[:500] for doc in context[:5]]
+            context_text = "\n".join(truncated_docs)
+            
+            # Further truncate if still too long
+            if len(context_text) > 4000:  # Arbitrary limit to ensure we stay within token bounds
+                context_text = context_text[:4000] + "..."
+            
+            prompt = f"""You are an idioms expert. Based on the query and context, provide exactly 3 idioms.
+            If the query mentions a specific tone (like sarcastic, happy, sad), provide idioms that match that tone.
+            
+            Return your response in this exact JSON format:
+            {{
+                "idioms": [
+                    {{
+                        "phrase": "the idiom itself",
+                        "meaning": "clear explanation of what it means",
+                        "example": "example sentence using the idiom"
+                    }}
+                ]
+            }}
+            
+            Query: {query}
+            Context: {context_text}
+            """
+            
+            # Create chat completion with adjusted max_tokens
+            response = self.client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You are an expert at explaining idioms clearly and concisely."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=1000,
+                temperature=0.7,
+                timeout=self.timeout
+            )
+            
+            # Check if the response is valid JSON
+            content = response.choices[0].message.content
+            print(f"Raw GPT Response: {content}")  # Debug print
+            
+            # Ensure we have a valid JSON response
+            try:
+                json_response = json.loads(content)
+                if not json_response.get("idioms"):
+                    raise ValueError("No idioms in response")
+                return content
+            except (json.JSONDecodeError, ValueError) as e:
+                print(f"Error parsing response: {str(e)}")
+                # Create a fallback response
+                fallback_response = {
+                    "idioms": [
+                        {
+                            "phrase": "Tongue in cheek",
+                            "meaning": "To speak in an ironic or insincere way",
+                            "example": "His sarcastic remarks were clearly tongue in cheek."
+                        }
+                    ]
+                }
+                return json.dumps(fallback_response)
+                
         except Exception as e:
-            print(f"Error parsing response: {str(e)}")
-            return '{"error": "Failed to parse response"}'
+            print(f"Error in generate_response: {str(e)}")
+            return '{"error": "Failed to generate response"}'
 
     def query(self, query: str, top_k: int = 5) -> str:
         """
@@ -132,6 +153,12 @@ class RAGSystem:
         
         # Retrieve similar documents
         relevant_docs = self.search_similar_documents(query_embedding, top_k)
+        
+        if not relevant_docs:
+            return json.dumps({
+                "idioms": [],
+                "message": "No relevant idioms found for your query."
+            }, indent=2)
         
         # Generate response and parse it as JSON
         response = self.generate_response(relevant_docs, query)
@@ -152,7 +179,7 @@ def main():
         )
         
         # Example query
-        query = "I am feeling sad i want to learn idioms about sadness"
+        query = "I am feeling sad I want to learn idioms about sadness"
         response = rag.query(query)
         
         # Save response to JSON file

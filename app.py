@@ -1,57 +1,54 @@
 from flask import Flask, jsonify, render_template, request
+from rag_system import RAGSystem
+from agent_orchestrator import AgentOrchestrator
+from teacher_agent import TeacherAgent
 import json
-from rag_system import RAGSystem, save_response_to_json
 
 app = Flask(__name__)
 
-# Cache the RAG system instance (will use environment variable for API key)
-rag_system = RAGSystem(
+# Initialize systems
+rag = RAGSystem(
     faiss_index_path="faiss_index.idx",
     vectors_path="vectors.pkl"
 )
 
-def load_idioms():
-    """Load idioms from the JSON file."""
-    try:
-        with open('idioms_response.json', 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {"error": "No idioms found"}
+# Initialize orchestrator and teacher
+orchestrator = AgentOrchestrator(rag)
+teacher = TeacherAgent(orchestrator)
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
-    """Home page with form and results."""
+    """Home page with chat interface."""
     try:
         if request.method == 'POST':
-            question = request.form['question']
-            print(f"Received question: {question}")
+            message = request.form.get('message')
+            mode = request.form.get('mode')
+            print(f"Received request - Mode: {mode}, Message: {message}")  # Debug print
             
-            # Use cached RAG system
-            response = rag_system.query(question)
-            save_response_to_json(response)
-            
-            # Load and return results
-            idioms = load_idioms()
-            return render_template('index.html', idioms=idioms, question=question)
+            if mode == 'quick_search':
+                # Use RAG system directly for quick search
+                result = rag.query(message)
+                return jsonify({
+                    'status': 'success',
+                    'response': json.loads(result)
+                })
+            elif mode == 'learning':
+                # Use teacher agent for learning mode
+                print("Processing learning mode request")  # Debug print
+                response = teacher.process_message(message)
+                print(f"Teacher response: {response}")  # Debug print
+                return jsonify({
+                    'status': 'success',
+                    'response': response
+                })
             
         return render_template('index.html')
     except Exception as e:
-        print(f"Error occurred: {str(e)}")
-        return render_template('index.html', error=str(e))
-
-@app.route('/idioms', methods=['GET'])
-def get_idioms():
-    """Return all idioms."""
-    return jsonify(load_idioms())
-
-@app.route('/idioms/<int:number>', methods=['GET'])
-def get_idiom(number):
-    """Return a specific idiom by number."""
-    idioms = load_idioms()
-    for idiom in idioms.get('idioms', []):
-        if idiom['number'] == number:
-            return jsonify(idiom)
-    return jsonify({"error": "Idiom not found"}), 404
+        print(f"Error in route: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=True) 

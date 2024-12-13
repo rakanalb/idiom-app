@@ -1,236 +1,580 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Idioms AI Assistant</title>
+    <title>Adam: Idioms Learning System</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #2563eb;
-            --secondary-color: #1e40af;
-            --background-color: #f0f9ff;
-            --card-color: #ffffff;
+            --primary: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --gradient-start: #2563eb;
+            --gradient-end: #1d4ed8;
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--background-color);
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+            color: var(--gray-800);
+            line-height: 1.5;
             min-height: 100vh;
         }
 
         .container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 0 1rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 2rem;
-            color: var(--primary-color);
-        }
-
-        .chat-container {
-            background-color: var(--card-color);
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .chat-box {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-bottom: 1.5rem;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            background-color: #f8fafc;
-        }
-
-        .message {
-            margin-bottom: 1rem;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            max-width: 80%;
-        }
-
-        .user-message {
-            background-color: var(--primary-color);
+            margin-bottom: 4rem;
+            padding: 2rem 0;
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            border-radius: 1.5rem;
             color: white;
-            margin-left: auto;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.15);
         }
 
-        .input-container {
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 4rem;
+        }
+
+        .mode-button {
+            padding: 1.2rem 2.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            color: var(--gray-700);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .mode-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .mode-button.active {
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            color: white;
+        }
+
+        .search-container {
+            max-width: 700px;
+            margin: 0 auto 4rem;
+        }
+
+        .search-box {
             display: flex;
             gap: 1rem;
-            margin-bottom: 2rem;
+            background: white;
+            padding: 0.8rem;
+            border-radius: 1.2rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
         }
 
-        input[type="text"] {
-            flex: 1;
-            padding: 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            transition: border-color 0.3s ease;
+        #user-input {
+            flex-grow: 1;
+            padding: 1rem 1.5rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 0.8rem;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
         }
 
-        input[type="text"]:focus {
+        #user-input:focus {
             outline: none;
-            border-color: var(--primary-color);
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
         }
 
-        button {
+        .search-button {
             padding: 1rem 2rem;
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
             color: white;
             border: none;
-            border-radius: 0.5rem;
+            border-radius: 0.8rem;
+            font-weight: 600;
+            font-size: 1.1rem;
             cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.3s ease;
+            transition: all 0.3s ease;
         }
 
-        button:hover {
-            background-color: var(--secondary-color);
+        .search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
         }
 
-        .idiom-container {
+        .results-container {
             display: grid;
-            gap: 1rem;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2.5rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease;
+            margin-top: 2rem;
+        }
+
+        .results-container.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .idiom-card {
-            background-color: var(--card-color);
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s ease;
+            background: white;
+            border-radius: 1.2rem;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .idiom-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
         }
 
         .idiom-card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 35px rgba(37, 99, 235, 0.15);
         }
 
-        .idiom-title {
-            color: var(--primary-color);
-            margin: 0 0 0.5rem 0;
-            font-size: 1.25rem;
+        .idiom-card h3 {
+            color: var(--primary);
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-100);
+            position: relative;
         }
 
-        .idiom-definition {
-            color: #4b5563;
-            margin: 0;
-            line-height: 1.5;
+        .idiom-card .meaning {
+            color: var(--gray-700);
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+            line-height: 1.6;
         }
 
-        .error {
-            background-color: #fee2e2;
-            color: #dc2626;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1rem;
+        .idiom-card .example {
+            background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+            padding: 1.2rem;
+            border-radius: 1rem;
+            font-size: 1rem;
+            color: var(--gray-700);
+            border-left: 4px solid var(--primary);
         }
 
         .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--gray-700);
             display: none;
-            width: 100%;
-            margin: 20px 0;
         }
 
-        .loading-bar {
-            width: 100%;
-            height: 4px;
-            background-color: #e2e8f0;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .loading-bar-progress {
-            width: 30%;
-            height: 100%;
-            background-color: var(--primary-color);
-            animation: loading 1.5s infinite ease-in-out;
-            border-radius: 2px;
-        }
-
-        @keyframes loading {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(400%); }
-        }
-
-        .results-section {
-            margin-top: 2rem;
-            padding-top: 2rem;
-            border-top: 2px solid #e2e8f0;
-        }
-
-        .results-header {
-            color: var(--primary-color);
+        .loading-spinner {
+            display: inline-block;
+            width: 2rem;
+            height: 2rem;
+            border: 3px solid var(--gray-200);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
             margin-bottom: 1rem;
         }
 
-        .show {
-            display: block;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1024px) {
+            .results-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .results-container {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 4rem;
+            color: var(--gray-700);
+            background: linear-gradient(135deg, var(--gray-50) 0%, #ffffff 100%);
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .footer p {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .heart {
+            color: #ef4444;
+            display: inline-block;
+            animation: heartbeat 1.5s ease infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .rocket {
+            display: inline-block;
+            animation: rocket 2s ease infinite;
+        }
+
+        @keyframes rocket {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+
+        /* Chat Interface Styles */
+        .chat-interface {
+            display: none;
+            max-width: 700px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 1.2rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 1.5rem;
+            background: var(--gray-50);
+        }
+
+        .chat-message {
+            margin-bottom: 1rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: messageIn 0.3s ease forwards;
+        }
+
+        @keyframes messageIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-message, .bot-message {
+            max-width: 80%;
+            padding: 1rem;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .user-message {
+            background: var(--primary);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 0.3rem;
+        }
+
+        .bot-message {
+            background: white;
+            border: 1px solid var(--gray-200);
+            margin-right: auto;
+            border-bottom-left-radius: 0.3rem;
+        }
+
+        .chat-input-container {
+            padding: 1rem;
+            background: white;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .chat-input {
+            flex-grow: 1;
+            padding: 1rem 1.5rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 0.8rem;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+        }
+
+        .chat-send-button {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            color: white;
+            border: none;
+            border-radius: 0.8rem;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Idioms AI Assistant</h1>
+        <header class="header">
+            <h1>Adam: Idioms Learning System</h1>
+            <p>Discover and learn English idioms with ease</p>
+        </header>
+
+        <div class="mode-selector">
+            <button class="mode-button active" onclick="switchMode('quick_search')">Quick Search</button>
+            <button class="mode-button" onclick="switchMode('learning')">Interactive Learning</button>
         </div>
 
-        <div class="chat-container">
-            {% if error %}
-                <div class="error">{{ error }}</div>
-            {% endif %}
-
-            <div class="chat-box">
-                {% if question %}
-                    <div class="message user-message">
-                        <strong>You:</strong> {{ question }}
-                    </div>
-                {% endif %}
+        <div id="quick-search-view">
+            <div class="search-container">
+                <div class="search-box">
+                    <input type="text" id="user-input" placeholder="Search for idioms">
+                    <button class="search-button" onclick="sendMessage()">Search</button>
+                </div>
             </div>
 
-            <form method="POST" action="/" class="input-container" id="questionForm">
-                <input type="text" name="question" placeholder="Ask about idioms..." required>
-                <button type="submit">Ask AI</button>
-            </form>
-
-            <!-- Loading Bar -->
-            <div class="loading" id="loadingBar">
-                <div class="loading-bar">
-                    <div class="loading-bar-progress"></div>
-                </div>
-                <p style="text-align: center; color: var(--primary-color);">Generating idioms...</p>
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Finding idioms for you...</p>
             </div>
 
-            <!-- Results Section -->
-            {% if idioms and idioms.idioms %}
-                <div class="results-section">
-                    <h2 class="results-header">Here are some relevant idioms:</h2>
-                    <div class="idiom-container">
-                        {% for idiom in idioms.idioms %}
-                            <div class="idiom-card">
-                                <h3 class="idiom-title">#{{ idiom.number }}: {{ idiom.idiom }}</h3>
-                                <p class="idiom-definition">{{ idiom.definition }}</p>
-                            </div>
-                        {% endfor %}
-                    </div>
+            <div class="results-container" id="results-container"></div>
+        </div>
+
+        <div id="learning-view" style="display: none;">
+            <div class="chat-interface">
+                <div class="chat-messages" id="chat-messages"></div>
+                <div class="chat-input-container">
+                    <input type="text" class="chat-input" id="chat-input" 
+                           placeholder="Type your message here..." />
+                    <button class="chat-send-button" onclick="sendChatMessage()">Send</button>
                 </div>
-            {% endif %}
+            </div>
         </div>
     </div>
 
+    <footer class="footer">
+        <p>Made with <span class="heart">❤️</span> at Ironhack Barcelona <span class="rocket">🚀</span></p>
+    </footer>
+
     <script>
-        document.getElementById('questionForm').addEventListener('submit', function(e) {
-            // Show loading bar
-            document.getElementById('loadingBar').classList.add('show');
+        let currentMode = 'quick_search';
+
+        function switchMode(mode) {
+            console.log('Switching to mode:', mode); // Debug print
+            currentMode = mode;
+            document.querySelectorAll('.mode-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
             
-            // Optional: Disable submit button to prevent double submission
-            this.querySelector('button').disabled = true;
+            if (mode === 'quick_search') {
+                document.getElementById('quick-search-view').style.display = 'block';
+                document.getElementById('learning-view').style.display = 'none';
+            } else {
+                document.getElementById('quick-search-view').style.display = 'none';
+                document.getElementById('learning-view').style.display = 'block';
+                document.querySelector('.chat-interface').style.display = 'block';
+                document.getElementById('chat-messages').innerHTML = '';
+                startLearningSession();
+            }
+        }
+
+        function showLoading() {
+            document.querySelector('.loading').style.display = 'block';
+            document.getElementById('results-container').style.opacity = '0';
+        }
+
+        function hideLoading() {
+            document.querySelector('.loading').style.display = 'none';
+            document.getElementById('results-container').style.opacity = '1';
+        }
+
+        function displayResults(response) {
+            const container = document.getElementById('results-container');
+            container.innerHTML = '';
+            
+            if (response.idioms && response.idioms.length > 0) {
+                response.idioms.forEach(idiom => {
+                    container.innerHTML += `
+                        <div class="idiom-card">
+                            <h3>${idiom.phrase}</h3>
+                            <p class="meaning"><strong>Meaning:</strong> ${idiom.meaning}</p>
+                            <p class="example"><strong>Example:</strong> ${idiom.example}</p>
+                        </div>
+                    `;
+                });
+                
+                container.classList.add('visible');
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            
+            if (message) {
+                showLoading();
+                
+                $.post('/', {
+                    message: message,
+                    mode: currentMode
+                }, function(response) {
+                    hideLoading();
+                    if (response.status === 'success') {
+                        displayResults(response.response);
+                    }
+                });
+            }
+        }
+
+        // Handle Enter key
+        document.getElementById('user-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function addChatMessage(response, isUser) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${isUser ? 'user-message' : 'bot-message'}`;
+            
+            if (isUser) {
+                messageDiv.textContent = response;
+            } else {
+                // Handle structured response from teacher agent
+                let content = `<div>${response.message}</div>`;
+                
+                if (response.idioms && response.idioms.length > 0) {
+                    response.idioms.forEach(idiom => {
+                        content += `
+                            <div class="idiom-box">
+                                <strong>${idiom.phrase}</strong><br>
+                                <em>Meaning:</em> ${idiom.meaning}<br>
+                                <em>Example:</em> ${idiom.example}
+                            </div>
+                        `;
+                    });
+                }
+                
+                if (response.practice) {
+                    content += `<div class="practice-box">${response.practice}</div>`;
+                }
+                
+                if (response.suggestions && response.suggestions.length > 0) {
+                    content += `<div class="suggestions">
+                        <em>You can respond with:</em>
+                        <ul>
+                            ${response.suggestions.map(s => `<li>${s}</li>`).join('')}
+                        </ul>
+                    </div>`;
+                }
+                
+                messageDiv.innerHTML = content;
+            }
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function startLearningSession() {
+            console.log('Starting learning session'); // Debug print
+            $.post('/', {
+                message: '',
+                mode: 'learning'
+            }, function(response) {
+                console.log('Received initial response:', response); // Debug print
+                if (response.status === 'success') {
+                    addChatMessage(response.response, false);
+                }
+            }).fail(function(error) {
+                console.error('Initial request failed:', error);
+            });
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (message) {
+                console.log('Sending chat message:', message); // Debug print
+                addChatMessage(message, true);
+                input.value = '';
+                
+                $.post('/', {
+                    message: message,
+                    mode: 'learning'  // Make sure mode is 'learning'
+                }, function(response) {
+                    console.log('Received response:', response); // Debug print
+                    if (response.status === 'success') {
+                        addChatMessage(response.response, false);
+                    } else {
+                        console.error('Error:', response.error);
+                    }
+                }).fail(function(error) {
+                    console.error('Request failed:', error); // Debug print for failures
+                });
+            }
+        }
+
+        // Handle Enter key for chat input
+        document.getElementById('chat-input')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
         });
     </script>
 </body>

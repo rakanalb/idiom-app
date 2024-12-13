@@ -6,11 +6,6 @@ from tqdm import tqdm
 import faiss
 import numpy as np
 import pickle  # Import pickle for serialization
-from dotenv import load_dotenv
-import os
-
-# Add this at the top of the file
-load_dotenv()
 
 def extract_text_from_pdf(pdf_path, start_page=6, end_page_offset=6):
     """Extracts text from a PDF, skipping the first and last few pages."""
@@ -42,7 +37,7 @@ def split_text_into_chunks(text, chunk_size=1000, chunk_overlap=200):
 
 def create_embeddings(docs):
     """Creates embeddings for each document chunk."""
-    embeddings = OpenAIEmbeddings(openai_api_key=os.getenv('OPENAI_API_KEY'))
+    embeddings = OpenAIEmbeddings()
     embedded_docs = []
     for doc in tqdm(docs, desc="Embedding chunks"):
         try:
