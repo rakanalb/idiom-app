@@ -5,3 +5,4 @@ __pycache__/
 idioms_response.json
 .env*
 *.ipynb
+myenv/
