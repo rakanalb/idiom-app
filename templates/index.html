@@ -366,6 +366,9 @@
     </style>
 </head>
 <body>
+    <div id="initial-message-data" style="display: none;" 
+        data-message='{% if initial_message %}{{ initial_message|tojson|safe }}{% else %}null{% endif %}'>
+    </div>
     <div class="container">
         <header class="header">
             <h1>Adam: Your Idioms Teaching Assistant</h1>
@@ -410,15 +413,22 @@
     </footer>
 
     <script>
+        // Get initial message from data attribute
+        const initialMessageElement = document.getElementById('initial-message-data');
+        const initialMessage = initialMessageElement ? JSON.parse(initialMessageElement.dataset.message) : null;
         let currentMode = 'quick_search';
+        let hasInitiatedLearning = false;  // Track if learning mode has been initiated
 
         function switchMode(mode) {
             console.log('Switching to mode:', mode); // Debug print
             currentMode = mode;
             document.querySelectorAll('.mode-button').forEach(btn => {
-                btn.classList.remove('active');
+                if (btn.getAttribute('onclick').includes(mode)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
             });
-            event.target.classList.add('active');
             
             if (mode === 'quick_search') {
                 document.getElementById('quick-search-view').style.display = 'block';
@@ -428,7 +438,11 @@
                 document.getElementById('learning-view').style.display = 'block';
                 document.querySelector('.chat-interface').style.display = 'block';
                 document.getElementById('chat-messages').innerHTML = '';
-                startLearningSession();
+                // Only start learning session if it's the first time
+                if (!hasInitiatedLearning) {
+                    startLearningSession();
+                    hasInitiatedLearning = true;
+                }
             }
         }
 
@@ -480,13 +494,6 @@
             }
         }
 
-        // Handle Enter key
-        document.getElementById('user-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
         function addChatMessage(response, isUser) {
             const messagesDiv = document.getElementById('chat-messages');
             const messageDiv = document.createElement('div');
@@ -532,6 +539,7 @@
 
         function startLearningSession() {
             console.log('Starting learning session'); // Debug print
+            // Send first request for greeting
             $.post('/', {
                 message: '',
                 mode: 'learning'
@@ -539,6 +547,17 @@
                 console.log('Received initial response:', response); // Debug print
                 if (response.status === 'success') {
                     addChatMessage(response.response, false);
+                    // Wait 1.5 seconds, then send second request for level question
+                    setTimeout(() => {
+                        $.post('/', {
+                            message: '',
+                            mode: 'learning'
+                        }, function(response) {
+                            if (response.status === 'success') {
+                                addChatMessage(response.response, false);
+                            }
+                        });
+                    }, 1500);
                 }
             }).fail(function(error) {
                 console.error('Initial request failed:', error);
@@ -570,10 +589,36 @@
             }
         }
 
-        // Handle Enter key for chat input
-        document.getElementById('chat-input')?.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendChatMessage();
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput) {
+                chatInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        sendChatMessage();
+                    }
+                });
+            }
+            
+            const userInput = document.getElementById('user-input');
+            if (userInput) {
+                userInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        sendMessage();
+                    }
+                });
+            }
+            
+            // Handle initial message if it exists
+            if (initialMessage) {
+                document.getElementById('quick-search-view').style.display = 'none';
+                document.getElementById('learning-view').style.display = 'block';
+                document.querySelector('.chat-interface').style.display = 'block';
+                addChatMessage(initialMessage, false);
+                document.querySelectorAll('.mode-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector('[onclick="switchMode(\'learning\')"]').classList.add('active');
+                currentMode = 'learning';
             }
         });
     </script>
