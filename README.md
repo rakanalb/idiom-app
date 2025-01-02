@@ -6,6 +6,12 @@
 ![Flask](https://img.shields.io/badge/flask-v3.1.0-lightgrey.svg)
 ![OpenAI](https://img.shields.io/badge/OpenAI-API-orange.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
+[![Deployment](https://img.shields.io/badge/deployment-live-success)](https://idiom-app.onrender.com)
+
+
+## 🌐 Live Demo
+
+Try Adam now: [idiom-app.onrender.com](https://idiom-app.onrender.com)
 
 ## ✨ Features
 
